@@ -16,6 +16,14 @@
           Fill Asset Dependencies
         </vscode-button>
 
+        <vscode-button
+          @click="fillColumnsFromDb"
+          appearance="primary"
+          class="text-2xs h-6 px-2"
+        >
+          Fill Columns from DB
+        </vscode-button>
+
       </div>
     </div>
   </div>
@@ -27,6 +35,12 @@ import { vscode } from "@/utilities/vscode";
 const fillAssetDependency = () => {
   vscode.postMessage({
     command: "bruin.fillAssetDependency",
+  });
+};
+
+const fillColumnsFromDb = () => {
+  vscode.postMessage({
+    command: "bruin.fillColumnsFromDb",
   });
 };
 

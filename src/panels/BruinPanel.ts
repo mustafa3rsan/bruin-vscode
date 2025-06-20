@@ -417,6 +417,20 @@ export class BruinPanel {
             await runBruinCommandInIntegratedTerminal(command, assetWorkspaceDir);  
 
             return;
+            
+            case "bruin.fillColumnsFromDb":
+            if (!this._lastRenderedDocumentUri) {
+              console.error("No active document to fill columns from DB.");
+              return;
+            }
+            const assetPathFillColumns = this._lastRenderedDocumentUri.fsPath;
+            const escapedAssetPathFillColumns = assetPathFillColumns ? escapeFilePath(assetPathFillColumns) : ""; 
+            const assetWorkspaceDirFillColumns = await bruinWorkspaceDirectory(assetPathFillColumns);
+
+            const commandFillColumns = [ "patch", "fill-columns-from-db", escapedAssetPathFillColumns];
+            await runBruinCommandInIntegratedTerminal(commandFillColumns, assetWorkspaceDirFillColumns);  
+
+            return;
 
           
 

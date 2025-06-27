@@ -24,6 +24,7 @@ import { BruinPanel } from "../panels/BruinPanel";
 import { QueryCodeLensProvider } from "../providers/queryCodeLensProvider";
 import { getQueryOutput } from "./commands/queryCommands";
 import { ActivityBarConnectionsProvider } from "../providers/ActivityBarConnectionsProvider";
+import { FavoritesProvider } from "../providers/FavoritesProvider";
 import { isBruinAsset, isBruinPipeline } from "../utilities/helperUtils";
 import { getBruinExecutablePath } from "../providers/BruinExecutableService";
 import { TableDetailsPanel } from '../panels/TableDetailsPanel';
@@ -185,8 +186,15 @@ export async function activate(context: ExtensionContext) {
 
   subscribeToConfigurationChanges();
 
-  const activityBarConnectionsProvider = new ActivityBarConnectionsProvider(context.extensionPath);
-  vscode.window.registerTreeDataProvider('bruinConnections', activityBarConnectionsProvider);
+  // Create favorites provider and connections provider
+  const favoritesProvider = new FavoritesProvider();
+  const activityBarConnectionsProvider = new ActivityBarConnectionsProvider(context.extensionPath, favoritesProvider);
+  
+  // Register both tree data providers
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider('bruinConnections', activityBarConnectionsProvider),
+    vscode.window.registerTreeDataProvider('bruinFavorites', favoritesProvider)
+  );
 
   const defaultFoldingState = bruinConfig.get("bruin.FoldingState", "folded");
   let toggled = defaultFoldingState === "folded";
@@ -340,6 +348,21 @@ export async function activate(context: ExtensionContext) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         vscode.window.showErrorMessage(`Error unstarring schema: ${errorMessage}`);
+      }
+    }),
+    
+    commands.registerCommand("bruin.removeFavorite", (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "removeFavorite" });
+        if (item && item.favoriteData) {
+          const { connectionName, schemaName } = item.favoriteData;
+          favoritesProvider.removeFavorite(connectionName, schemaName);
+          activityBarConnectionsProvider.refresh(); // Refresh connections to update star icons
+          vscode.window.showInformationMessage(`${connectionName}.${schemaName} removed from favorites`);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error removing favorite: ${errorMessage}`);
       }
     }),
   ];

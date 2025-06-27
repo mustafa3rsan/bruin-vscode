@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
 import { BruinDBTCommand } from '../bruin/bruinDBTCommand';
 import { BruinConnections } from '../bruin/bruinConnections';
 import { Connection } from '../utilities/helperUtils';
@@ -62,8 +60,8 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   private bruinConnections: BruinConnections;
   private databaseCache = new Map<string, Schema[]>();
   
-  // Track starred schemas using connectionName.schemaName as key
-  private starredSchemas = new Map<string, boolean>();
+  // Reference to favorites provider
+  private favoritesProvider: any;
   
   // Allowed connection types
   private readonly allowedConnectionTypes = [
@@ -78,14 +76,14 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     'athena'
   ];
 
-  constructor(private extensionPath: string) {
+  constructor(private extensionPath: string, favoritesProvider?: any) {
     // Get the current workspace folder or fallback to extension path
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || extensionPath;
     
     // Initialize BruinConnections with proper parameters
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
+    this.favoritesProvider = favoritesProvider;
     this.loadConnections();
-    this.loadStarredSchemas();
   }
 
   public refresh(): void {
@@ -100,52 +98,15 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
 
   // Star/Unstar schema functionality
   public toggleStarSchema(connectionName: string, schemaName: string): void {
-    const key = `${connectionName}.${schemaName}`;
-    const isCurrentlyStarred = this.starredSchemas.get(key) || false;
-    this.starredSchemas.set(key, !isCurrentlyStarred);
-    this.saveStarredSchemas();
+    if (this.favoritesProvider) {
+      const connection = this.connections.find(conn => conn.name === connectionName);
+      this.favoritesProvider.toggleFavorite(connectionName, schemaName, connection?.type);
+    }
     this._onDidChangeTreeData.fire();
   }
 
   public isSchemaStarred(connectionName: string, schemaName: string): boolean {
-    const key = `${connectionName}.${schemaName}`;
-    return this.starredSchemas.get(key) || false;
-  }
-
-  // Load starred schemas from storage
-  private loadStarredSchemas(): void {
-    try {
-      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
-      const logsDir = path.join(workspaceFolder, 'logs');
-      const storageFile = path.join(logsDir, 'bruin-favorites.json');
-      
-      if (fs.existsSync(storageFile)) {
-        const data = fs.readFileSync(storageFile, 'utf8');
-        const starredData = JSON.parse(data);
-        this.starredSchemas = new Map(Object.entries(starredData));
-      }
-    } catch (error) {
-      console.error('Error loading starred schemas:', error);
-    }
-  }
-
-  // Save starred schemas to storage
-  private saveStarredSchemas(): void {
-    try {
-      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
-      const logsDir = path.join(workspaceFolder, 'logs');
-      
-      // Create logs directory if it doesn't exist
-      if (!fs.existsSync(logsDir)) {
-        fs.mkdirSync(logsDir, { recursive: true });
-      }
-      
-      const storageFile = path.join(logsDir, 'bruin-favorites.json');
-      const starredData = Object.fromEntries(this.starredSchemas);
-      fs.writeFileSync(storageFile, JSON.stringify(starredData, null, 2));
-    } catch (error) {
-      console.error('Error saving starred schemas:', error);
-    }
+    return this.favoritesProvider ? this.favoritesProvider.isFavorite(connectionName, schemaName) : false;
   }
 
   // Load connections using BruinConnections.getConnectionsForActivityBar() method
@@ -229,7 +190,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
       }
     }
     
-    if (element.contextValue === 'schema' && 'tables' in element.itemData) {
+    if ((element.contextValue === 'schema-starred' || element.contextValue === 'schema-unstarred') && 'tables' in element.itemData) {
       const schema = element.itemData as Schema;
       return schema.tables.map(table => {
         const tableItem: Table = { name: table, schema: schema.name, connectionName: schema.connectionName };

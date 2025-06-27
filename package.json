@@ -97,6 +97,10 @@
         {
           "id": "bruinConnections",
           "name": "Databases"
+        },
+        {
+          "id": "bruinFavorites",
+          "name": "Favorites"
         }
       ],
       "bruin-assetLineageView": [
@@ -158,6 +162,25 @@
           "type": "boolean",
           "default": false,
           "description": "Sets whether the 'Push-Metadata' checkbox is checked by default."
+        },
+        "bruin.favoriteSchemas": {
+          "type": "object",
+          "default": {},
+          "description": "Stores favorite database schemas. This setting is automatically managed by the extension.",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "connectionName": {
+                "type": "string"
+              },
+              "schemaName": {
+                "type": "string"
+              },
+              "connectionType": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     },
@@ -232,6 +255,11 @@
           "command": "bruin.unstarSchema",
           "when": "view == bruinConnections && viewItem == 'schema-starred'",
           "group": "inline"
+        },
+        {
+          "command": "bruin.removeFavorite",
+          "when": "view == bruinFavorites && viewItem == 'favorite-schema'",
+          "group": "inline"
         }
       ]
     },
@@ -296,6 +324,13 @@
         "category": "Bruin",
         "icon": "$(star-full)",
         "description": "Unstar this schema."
+      },
+      {
+        "command": "bruin.removeFavorite",
+        "title": "Remove from Favorites",
+        "category": "Bruin",
+        "icon": "$(close)",
+        "description": "Remove this item from favorites."
       }
     ]
   },

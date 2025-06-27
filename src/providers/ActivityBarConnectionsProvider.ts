@@ -34,14 +34,16 @@ class ConnectionItem extends vscode.TreeItem {
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly itemData: TreeItemData,
-    public readonly contextValue: 'bruin_connection' | 'schema' | 'table' | 'connections'
+    public readonly contextValue: 'bruin_connection' | 'schema' | 'table' | 'connections' | 'schema-starred' | 'schema-unstarred',
+    public readonly isStarred?: boolean
   ) {
     super(label, collapsibleState);
     this.contextValue = contextValue;
 
     if (this.contextValue === 'bruin_connection') {
       this.iconPath = new vscode.ThemeIcon('plug');
-    } else if (this.contextValue === 'schema') {
+    } else if (this.contextValue === 'schema-starred' || this.contextValue === 'schema-unstarred') {
+      // Use database icon for schema, star will be shown as inline action
       this.iconPath = new vscode.ThemeIcon('database');
     } else if (this.contextValue === 'table') {
       this.iconPath = new vscode.ThemeIcon('table');
@@ -59,6 +61,9 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   private connections: ConnectionDisplayData[] = [];
   private bruinConnections: BruinConnections;
   private databaseCache = new Map<string, Schema[]>();
+  
+  // Track starred schemas using connectionName.schemaName as key
+  private starredSchemas = new Map<string, boolean>();
   
   // Allowed connection types
   private readonly allowedConnectionTypes = [
@@ -80,6 +85,7 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     // Initialize BruinConnections with proper parameters
     this.bruinConnections = new BruinConnections("bruin", workspaceFolder);
     this.loadConnections();
+    this.loadStarredSchemas();
   }
 
   public refresh(): void {
@@ -90,6 +96,56 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
   public refreshConnection(connectionName: string): void {
     this.databaseCache.delete(connectionName);
     this._onDidChangeTreeData.fire();
+  }
+
+  // Star/Unstar schema functionality
+  public toggleStarSchema(connectionName: string, schemaName: string): void {
+    const key = `${connectionName}.${schemaName}`;
+    const isCurrentlyStarred = this.starredSchemas.get(key) || false;
+    this.starredSchemas.set(key, !isCurrentlyStarred);
+    this.saveStarredSchemas();
+    this._onDidChangeTreeData.fire();
+  }
+
+  public isSchemaStarred(connectionName: string, schemaName: string): boolean {
+    const key = `${connectionName}.${schemaName}`;
+    return this.starredSchemas.get(key) || false;
+  }
+
+  // Load starred schemas from storage
+  private loadStarredSchemas(): void {
+    try {
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
+      const logsDir = path.join(workspaceFolder, 'logs');
+      const storageFile = path.join(logsDir, 'bruin-favorites.json');
+      
+      if (fs.existsSync(storageFile)) {
+        const data = fs.readFileSync(storageFile, 'utf8');
+        const starredData = JSON.parse(data);
+        this.starredSchemas = new Map(Object.entries(starredData));
+      }
+    } catch (error) {
+      console.error('Error loading starred schemas:', error);
+    }
+  }
+
+  // Save starred schemas to storage
+  private saveStarredSchemas(): void {
+    try {
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || this.extensionPath;
+      const logsDir = path.join(workspaceFolder, 'logs');
+      
+      // Create logs directory if it doesn't exist
+      if (!fs.existsSync(logsDir)) {
+        fs.mkdirSync(logsDir, { recursive: true });
+      }
+      
+      const storageFile = path.join(logsDir, 'bruin-favorites.json');
+      const starredData = Object.fromEntries(this.starredSchemas);
+      fs.writeFileSync(storageFile, JSON.stringify(starredData, null, 2));
+    } catch (error) {
+      console.error('Error saving starred schemas:', error);
+    }
   }
 
   // Load connections using BruinConnections.getConnectionsForActivityBar() method
@@ -151,18 +207,22 @@ export class ActivityBarConnectionsProvider implements vscode.TreeDataProvider<C
     if (element.contextValue === 'bruin_connection' && 'name' in element.itemData) {
       const connectionName = element.itemData.name;
       if (this.databaseCache.has(connectionName)) {
-        return this.databaseCache.get(connectionName)!.map(schema => 
-          new ConnectionItem(schema.name, vscode.TreeItemCollapsibleState.Collapsed, schema, 'schema')
-        );
+        return this.databaseCache.get(connectionName)!.map(schema => {
+          const isStarred = this.isSchemaStarred(connectionName, schema.name);
+          const contextValue = isStarred ? 'schema-starred' : 'schema-unstarred';
+          return new ConnectionItem(schema.name, vscode.TreeItemCollapsibleState.Collapsed, schema, contextValue, isStarred);
+        });
       }
 
       try {
         const summary = await this.getDatabaseSummary(connectionName);
         const schemas = this.parseDbSummary(summary, connectionName);
         this.databaseCache.set(connectionName, schemas);
-        return schemas.map(schema => 
-          new ConnectionItem(schema.name, vscode.TreeItemCollapsibleState.Collapsed, schema, 'schema')
-        );
+        return schemas.map(schema => {
+          const isStarred = this.isSchemaStarred(connectionName, schema.name);
+          const contextValue = isStarred ? 'schema-starred' : 'schema-unstarred';
+          return new ConnectionItem(schema.name, vscode.TreeItemCollapsibleState.Collapsed, schema, contextValue, isStarred);
+        });
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to get database summary: ${error}`);
         return [];

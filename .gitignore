@@ -5,3 +5,4 @@ node_modules
 *.vsix
 .DS_Store
 .bruin.yml
+.bruin-starred-schemas.json

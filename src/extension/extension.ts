@@ -312,6 +312,36 @@ export async function activate(context: ExtensionContext) {
         vscode.window.showErrorMessage(`Error converting file to asset: ${errorMessage}`);
       }
     }),
+
+    commands.registerCommand("bruin.starSchema", (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "starSchema" });
+        if (item && item.itemData && 'name' in item.itemData && 'connectionName' in item.itemData) {
+          const schemaName = item.itemData.name;
+          const connectionName = item.itemData.connectionName;
+          activityBarConnectionsProvider.toggleStarSchema(connectionName, schemaName);
+          vscode.window.showInformationMessage(`Schema ${schemaName} starred`);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error starring schema: ${errorMessage}`);
+      }
+    }),
+
+    commands.registerCommand("bruin.unstarSchema", (item: any) => {
+      try {
+        trackEvent("Command Executed", { command: "unstarSchema" });
+        if (item && item.itemData && 'name' in item.itemData && 'connectionName' in item.itemData) {
+          const schemaName = item.itemData.name;
+          const connectionName = item.itemData.connectionName;
+          activityBarConnectionsProvider.toggleStarSchema(connectionName, schemaName);
+          vscode.window.showInformationMessage(`Schema ${schemaName} unstarred`);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Error unstarring schema: ${errorMessage}`);
+      }
+    }),
   ];
 
   context.subscriptions.push(...commandDisposables);

@@ -222,6 +222,16 @@
           "command": "bruin.refreshConnection",
           "when": "view == bruinConnections && viewItem == 'bruin_connection'",
           "group": "inline"
+        },
+        {
+          "command": "bruin.starSchema",
+          "when": "view == bruinConnections && viewItem == 'schema-unstarred'",
+          "group": "inline"
+        },
+        {
+          "command": "bruin.unstarSchema",
+          "when": "view == bruinConnections && viewItem == 'schema-starred'",
+          "group": "inline"
         }
       ]
     },
@@ -272,6 +282,20 @@
         "title": "Convert File to Asset",
         "category": "Bruin",
         "description": "Convert a file to a Bruin asset."
+      },
+      {
+        "command": "bruin.starSchema",
+        "title": "Star Schema",
+        "category": "Bruin",
+        "icon": "$(star-empty)",
+        "description": "Star this schema."
+      },
+      {
+        "command": "bruin.unstarSchema",
+        "title": "Unstar Schema",
+        "category": "Bruin",
+        "icon": "$(star-full)",
+        "description": "Unstar this schema."
       }
     ]
   },

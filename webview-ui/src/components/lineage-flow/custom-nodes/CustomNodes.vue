@@ -60,6 +60,27 @@
             </div>
           </div>
         </div>
+        
+        <!-- Column List for Column-Level Lineage -->
+        <div v-if="data.columnLevelView && data.columns && data.columns.length > 0" 
+             class="columns-list mt-2 border-t border-white/20 pt-2">
+          <div class="text-xs font-semibold text-gray-400 mb-1 px-1">Columns ({{ data.columns.length }}):</div>
+          <div class="max-h-32 overflow-y-auto">
+            <div v-for="column in data.columns" :key="column.name || column" 
+                 class="text-xs py-1 px-1 border-b border-white/10 last:border-b-0 hover:bg-white/5">
+              <div class="font-mono">{{ typeof column === 'string' ? column : column.name }}</div>
+              <div v-if="typeof column === 'object' && column.type" 
+                   class="text-gray-500 text-[10px]">{{ column.type }}</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Debug info for column-level view -->
+        <div v-if="data.columnLevelView" class="text-[10px] text-yellow-400 mt-1 px-1">
+          DEBUG: columnLevelView={{ data.columnLevelView }}, 
+          hasColumns={{ !!data.columns }}, 
+          columnCount={{ data.columns?.length || 0 }}
+        </div>
       </div>
     </div>
 

@@ -22,6 +22,7 @@ import {
   parseAssetCommand,
   patchAssetCommand,
 } from "../extension/commands/parseAssetCommand";
+import { parseAssetColumnsCommand } from "../extension/commands/parseColumnsCommand";
 import { getEnvListCommand } from "../extension/commands/getEnvListCommand";
 import { BruinInstallCLI } from "../bruin/bruinInstallCli";
 import {
@@ -750,6 +751,13 @@ export class BruinPanel {
           case "bruin.getPipelineAssets":
             console.log("Getting pipeline assets");
             flowLineageCommand(this._lastRenderedDocumentUri, "BruinPanel");
+            break;
+          case "bruin.parseColumns":
+            if (!this._lastRenderedDocumentUri) {
+              return;
+            }
+            console.log("Parsing columns for asset", this._lastRenderedDocumentUri.fsPath);
+            parseAssetColumnsCommand(this._lastRenderedDocumentUri);
             break;
           case "bruin.createEnvironment":
             const { environmentName } = message.payload;

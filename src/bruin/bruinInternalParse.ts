@@ -101,7 +101,40 @@ export class BruinInternalParse extends BruinCommand {
     }
   }
 
+  /**
+   * Parse asset columns with column-level lineage using the -c flag
+   * @param filePath - Path to the asset file
+   */
+  public async parseColumns(filePath: string): Promise<void> {
+    console.time("parseColumns");
+    try {
+      // Use the -c flag with parse-asset command to get column-level lineage
+      this.run(["parse-asset", "-c", filePath], { ignoresErrors: false })
+        .then(
+          (result) => {
+            this.postMessageToColumnsPanel("success", result);
+            console.timeEnd("parseColumns");
+          },
+          (error) => {
+            this.postMessageToColumnsPanel("error", error);
+            console.timeEnd("parseColumns");
+          }
+        )
+        .catch((err) => {
+          console.debug("parsing columns command error", err);
+          console.timeEnd("parseColumns");
+        });
+    } catch (err) {
+      this.postMessageToColumnsPanel("error", err instanceof Error ? err.message : String(err));
+      console.timeEnd("parseColumns");
+    }
+  }
+
   private postMessageToPanels(status: string, message: string | any) {
     BruinPanel.postMessage("parse-message", { status, message });
+  }
+
+  private postMessageToColumnsPanel(status: string, message: string | any) {
+    BruinPanel.postMessage("parse-columns-message", { status, message });
   }
 }

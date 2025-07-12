@@ -279,6 +279,33 @@ const handleMessage = (event: MessageEvent) => {
         console.warn("Parsing message received END:", new Date().toISOString());
         break;
       }
+      case "parse-columns-message": {
+        const columnError = updateValue(message, "error");
+        const columnParsed = updateValue(message, "success");
+        
+        if (!columnError && columnParsed) {
+          try {
+            // Parse the JSON response from bruin internal parse-asset -c
+            const columnData = JSON.parse(columnParsed);
+            console.log("Column-level lineage data received:", columnData);
+            
+            // Store column data globally for the lineage component to access
+            window.columnLineageData = columnData;
+            
+            // Emit a custom event for the lineage component
+            window.dispatchEvent(new CustomEvent('column-lineage-data', { 
+              detail: columnData 
+            }));
+          } catch (error) {
+            console.error("Error parsing column-level lineage data:", error);
+          }
+        }
+        
+        if (columnError) {
+          console.error("Column-level lineage parsing error:", columnError);
+        }
+        break;
+      }
       case "pipeline-assets":
         pipelineAssetsData.value = updateValue(message, "success");
         console.log("Received pipeline assets data:", pipelineAssetsData.value);

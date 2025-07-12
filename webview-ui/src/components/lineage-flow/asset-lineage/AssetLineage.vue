@@ -95,6 +95,10 @@
                   </div>
                 </div>
               </vscode-radio>
+
+              <vscode-radio value="columns" class="radio-item" @click="handleColumnLevelFilter">
+                <span class="radio-label text-editor-fg">Column-Level Lineage</span>
+              </vscode-radio>
             </vscode-radio-group>
           </div>
           
@@ -171,7 +175,8 @@ const isLayouting = ref(false);
 const error = ref<string | null>(props.LineageError);
 
 // Filter state
-const filterType = ref<"direct" | "all">("direct");
+const filterType = ref<"direct" | "all" | "columns">("direct");
+const columnLevelData = ref(null);
 const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
@@ -182,6 +187,7 @@ const elk = new ELK();
 // Computed properties for performance
 const filterLabel = computed(() => {
   if (filterType.value === "direct") return "Direct Dependencies";
+  if (filterType.value === "columns") return "Column-Level Lineage";
   if (expandAllUpstreams.value && expandAllDownstreams.value) return "All Dependencies";
   if (expandAllDownstreams.value) return "All Downstreams";
   return "All Upstreams";
@@ -249,8 +255,97 @@ const currentGraphData = computed(() => {
     };
   }
   
+  if (filterType.value === "columns") {
+    // Return column-level lineage data if available
+    if (columnLevelData.value) {
+      return generateColumnLevelGraph(columnLevelData.value);
+    }
+    // Fall back to base graph data while loading column data
+    return baseGraphData.value;
+  }
+  
   return { nodes: [], edges: [] };
 });
+
+/**
+ * Generate column-level lineage graph
+ */
+const generateColumnLevelGraph = (columnData: any) => {
+  console.log("Generating column-level graph with data:", columnData);
+  
+  if (!columnData || !columnData.asset) {
+    console.log("No asset data found in column data");
+    return { nodes: [], edges: [] };
+  }
+
+  const nodes: any[] = [];
+  const edges: any[] = [];
+  
+  // Create main asset node with columns
+  const mainAssetNode = {
+    id: columnData.asset.name || 'main-asset',
+    type: 'custom',
+    position: { x: 0, y: 0 },
+    data: {
+      label: columnData.asset.name || 'Asset',
+      columns: columnData.asset.columns || [],
+      isMainAsset: true,
+      columnLevelView: true,
+      type: 'asset',
+      asset: {
+        name: columnData.asset.name,
+        type: columnData.asset.type,
+        path: columnData.asset.executable_file?.path
+      }
+    }
+  };
+  nodes.push(mainAssetNode);
+  
+  console.log("Created main asset node with columns:", mainAssetNode.data.columns);
+
+  // For now, if there are no upstreams, just show the current asset with its columns
+  // This allows users to see the column structure even without dependencies
+  if (!columnData.asset.upstreams || columnData.asset.upstreams.length === 0) {
+    console.log("No upstreams found, showing only main asset columns");
+    return { nodes, edges };
+  }
+
+  // Create upstream nodes with their columns
+  columnData.asset.upstreams.forEach((upstream: any, index: number) => {
+    const upstreamNode = {
+      id: upstream.name || `upstream-${index}`,
+      type: 'custom',
+      position: { x: -300, y: index * 120 },
+      data: {
+        label: upstream.name || `Upstream ${index + 1}`,
+        columns: upstream.columns || [],
+        isUpstream: true,
+        columnLevelView: true,
+        type: 'asset',
+        asset: {
+          name: upstream.name,
+          type: upstream.type || 'unknown'
+        }
+      }
+    };
+    nodes.push(upstreamNode);
+
+    // Create basic edge between upstream and main asset
+    const edgeId = `${upstream.name}_to_${columnData.asset.name}`;
+    edges.push({
+      id: edgeId,
+      source: upstream.name,
+      target: columnData.asset.name,
+      type: 'smoothstep',
+      data: {
+        columnLevel: true
+      }
+    });
+  });
+
+  console.log("Generated column-level graph:", { nodes, edges });
+  return { nodes, edges };
+};
 
 /**
  * Recursive dependency traversal functions
@@ -565,6 +660,20 @@ const handleAllFilter = (event: Event) => {
   // updateGraph will be called automatically via watcher
 };
 
+const handleColumnLevelFilter = (event: Event) => {
+  event.stopPropagation();
+  filterType.value = "columns";
+  expandAllUpstreams.value = false;
+  expandAllDownstreams.value = false;
+  expandedNodes.value = {};
+  
+  // Trigger column-level lineage parsing
+  vscode.postMessage({
+    command: "bruin.parseColumns",
+    payload: {}
+  });
+};
+
 const handleReset = async (event: Event) => {
   event.stopPropagation();
   resetFilterState();
@@ -592,10 +701,34 @@ const handlePipelineView = async (event?: Event) => {
 };
 
 /**
+ * Column-level lineage event handler
+ */
+const handleColumnLineageData = (event: CustomEvent) => {
+  console.log("Received column-level lineage data in AssetLineage component:", event.detail);
+  console.log("Current filter type:", filterType.value);
+  columnLevelData.value = event.detail;
+  
+  // Force update of the graph if we're in column mode
+  if (filterType.value === "columns") {
+    console.log("Updating graph for column-level view");
+    updateGraph();
+  } else {
+    console.log("Not in column mode, current filter is:", filterType.value);
+  }
+};
+
+/**
  * Lifecycle hooks
  */
 onMounted(() => {
   processProperties();
+  // Listen for column-level lineage data
+  window.addEventListener('column-lineage-data', handleColumnLineageData as EventListener);
+});
+
+onUnmounted(() => {
+  // Clean up event listener
+  window.removeEventListener('column-lineage-data', handleColumnLineageData as EventListener);
 });
 
 // Watch for filter changes to automatically update graph

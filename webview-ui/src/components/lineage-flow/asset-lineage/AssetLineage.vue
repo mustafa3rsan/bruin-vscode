@@ -35,6 +35,7 @@
           @node-click="onNodeClick"
           :selected-node-id="selectedNodeId"
           :show-expand-buttons="filterType === 'direct'"
+          :show-column-level="showColumnLevel"
         />
       </template>
       
@@ -96,6 +97,18 @@
                 </div>
               </vscode-radio>
             </vscode-radio-group>
+            
+            <!-- Column Level Toggle -->
+            <div class="column-toggle-section mt-2 pt-2 border-t border-notificationCenter-border">
+              <label class="flex items-center gap-2 px-1">
+                <vscode-checkbox 
+                  :checked="showColumnLevel" 
+                  @change="toggleColumnLevel"
+                >
+                </vscode-checkbox>
+                <span class="radio-label text-editor-fg">Column Level View</span>
+              </label>
+            </div>
           </div>
           
           <div class="flex justify-end px-2 pb-1">
@@ -175,6 +188,7 @@ const filterType = ref<"direct" | "all">("direct");
 const expandAllDownstreams = ref(false);
 const expandAllUpstreams = ref(false);
 const expandedNodes = ref<{ [key: string]: boolean }>({});
+const showColumnLevel = ref(false);
 
 // Layout
 const elk = new ELK();
@@ -324,12 +338,21 @@ const applyLayout = async (inputNodes?: any[], inputEdges?: any[]) => {
       "elk.layered.crossingMinimization.semiInteractive": "true",
       "elk.layered.unnecessaryBendpoints": "true",
     },
-    children: nodesToLayout.map((node) => ({
-      id: node.id,
-      width: 150,
-      height: 70,
-      labels: [{ text: node.data.label }],
-    })),
+    children: nodesToLayout.map((node) => {
+      // Calculate dynamic height based on whether columns are shown
+      let height = 70; // Base height
+      if (showColumnLevel.value && node.data.asset?.isFocusAsset && node.data.asset?.columns?.length > 0) {
+        // Add height for column header + each column (roughly 20px per column + 30px for header)
+        height += 30 + (node.data.asset.columns.length * 20);
+      }
+      
+      return {
+        id: node.id,
+        width: 224, // Match the node-content width from CustomNodes.vue
+        height: height,
+        labels: [{ text: node.data.label }],
+      };
+    }),
     edges: edgesToLayout.map((edge) => ({
       id: edge.id,
       sources: [edge.source],
@@ -570,7 +593,14 @@ const handleReset = async (event: Event) => {
   resetFilterState();
   expandedNodes.value = {};
   showPipelineView.value = false;
+  showColumnLevel.value = false;
   await updateGraph();
+};
+
+const toggleColumnLevel = (event: Event) => {
+  const checkbox = event.target as HTMLInputElement;
+  showColumnLevel.value = checkbox.checked;
+  // Graph will update automatically via watcher
 };
 
 /**
@@ -600,7 +630,7 @@ onMounted(() => {
 
 // Watch for filter changes to automatically update graph
 watch(
-  () => [filterType.value, expandAllUpstreams.value, expandAllDownstreams.value],
+  () => [filterType.value, expandAllUpstreams.value, expandAllDownstreams.value, showColumnLevel.value],
   () => {
     if (props.assetDataset && props.pipelineData && !showPipelineView.value) {
       updateGraph();

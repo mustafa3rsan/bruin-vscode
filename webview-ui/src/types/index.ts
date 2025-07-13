@@ -42,6 +42,20 @@ export interface Asset {
   hasDownstreams: boolean;
   isFocusAsset?: boolean;
   definition_file?: {path: string};
+  columns?: AssetColumn[];
+}
+
+export interface AssetColumn {
+  name: string;
+  type: string;
+  description?: string;
+  primary_key?: boolean;
+  upstreams?: ColumnUpstream[];
+}
+
+export interface ColumnUpstream {
+  column: string;
+  table: string;
 }
 
 export interface Project {
@@ -62,6 +76,7 @@ export interface BruinNodeProps {
   status?: string;
   onNodeDoubleClick?: Function;
   nodeProps?: any;
+  showColumnLevel?: boolean;
 }
 
 export interface AssetDataset {
@@ -72,6 +87,7 @@ export interface AssetDataset {
   upstream?: Upstream[];
   downstream?: Downstream[];
   isFocusAsset: boolean;
+  columns?: AssetColumn[];
 }
 
 export interface Upstream {

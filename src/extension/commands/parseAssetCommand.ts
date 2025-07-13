@@ -11,7 +11,7 @@ export const parseAssetCommand = async (lastRenderedDocumentUri: Uri | undefined
   const parsed = new BruinInternalParse(
     bruinExec, ""
   );
-  await parsed.parseAsset(lastRenderedDocumentUri.fsPath);
+  await parsed.parseAsset(lastRenderedDocumentUri.fsPath, { flags: ["parse-asset", "-c"] });
 };
 
 export const patchAssetCommand = async (body: object, lastRenderedDocumentUri: Uri | undefined) => {

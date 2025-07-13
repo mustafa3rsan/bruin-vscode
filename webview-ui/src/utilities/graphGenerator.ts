@@ -20,6 +20,7 @@ export function generateGraphFromJSON(asset) {
             path: assetData.path || "unknown",
             hasDownstreams: assetData.downstream?.length > 0,
             hasUpstreams: assetData.upstreams?.length > 0,
+            columns: assetData.columns || [],
           },
           hasUpstreamForClicking: assetData.hasUpstreamForClicking,
           hasDownstreamForClicking: assetData.hasDownstreamForClicking,

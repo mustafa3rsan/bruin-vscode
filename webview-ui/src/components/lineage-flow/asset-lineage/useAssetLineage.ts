@@ -79,6 +79,7 @@ export const getAssetDataset = (
     path: asset.definition_file.path,
     upstreams: upstreams,
     downstream: downstreams,
+    columns: asset.columns || [],
   };
 
   console.log("Result", JSON.stringify(result, null, 2));

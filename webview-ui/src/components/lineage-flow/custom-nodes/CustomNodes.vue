@@ -42,7 +42,7 @@
 
         <div
           class="rounded-b font-mono py-1 text-left px-1 border border-white/20"
-          :class="[selectedStyle.main, status ? '' : 'rounded-tl']"
+          :class="[selectedStyle.main, status ? '' : 'rounded-tl', showColumns ? 'rounded-b-none' : '']"
         >
           <div class="relative group">
             <!-- Truncated Text with Expand Option -->
@@ -57,6 +57,25 @@
               @click.stop="toggleExpand"
             >
               {{ label }}
+            </div>
+          </div>
+        </div>
+        
+        <!-- Columns Section -->
+        <div
+          v-if="showColumns"
+          class="border-t border-white/40 bg-opacity-80 rounded-b"
+          :class="selectedStyle.main"
+        >
+          <div class="text-xs font-mono px-2 py-1 space-y-1">
+            <div class="text-xs opacity-70 font-semibold mb-1">Columns:</div>
+            <div 
+              v-for="column in assetColumns" 
+              :key="column.name"
+              class="flex justify-between items-center text-xs"
+            >
+              <span class="truncate mr-2">{{ column.name }}</span>
+              <span class="text-xs opacity-60 font-medium">{{ column.type.toUpperCase() }}</span>
             </div>
           </div>
         </div>
@@ -116,6 +135,7 @@ const props = defineProps<BruinNodeProps & {
   expandAllUpstreams?: boolean;
   expandedNodes?: { [key: string]: boolean };
   showExpandButtons: boolean;
+  showColumnLevel?: boolean;
 }>();
 const emit = defineEmits(["add-upstream", "add-downstream", "node-click", "toggle-node-expand"]);
 
@@ -178,6 +198,15 @@ const handleGoToDetails = (asset) => {
 
 const label = computed(() => props.data.asset?.name || '');
 const isExpanded = computed(() => props.expandedNodes?.[props.data.asset?.name || ''] || false);
+
+// Column display logic
+const showColumns = computed(() => 
+  props.showColumnLevel && 
+  props.data.asset?.isFocusAsset && 
+  assetColumns.value.length > 0
+);
+
+const assetColumns = computed(() => props.data.asset?.columns || []);
 
 const isTruncated = computed(() => label.value.length > 26);
 const truncatedLabel = computed(() => {

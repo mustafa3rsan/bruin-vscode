@@ -47,7 +47,9 @@
           <div class="relative group">
             <!-- Node Text -->
             <div class="dynamic-text" :style="{ fontSize: computedFontSize }">
-              {{ truncatedLabel }}
+              <div v-for="(line, index) in formattedLines" :key="index" class="text-line">
+                {{ line }}
+              </div>
             </div>
             <!-- Tooltip -->
             <div
@@ -177,13 +179,37 @@ const handleGoToDetails = (asset) => {
 
 const label = computed(() => props.data.asset?.name || '');
 
-const isTruncated = computed(() => label.value.length > 26);
-const truncatedLabel = computed(() => {
-  const maxLength = 26;
-  const name = label.value;
-  return name.length > maxLength ? `${name.slice(0, maxLength)}...` : name;
+const isTruncated = computed(() => {
+  // Check if any line is longer than 26 characters or if we have more than 3 lines
+  return formattedLines.value.some(line => line.length > 26) || formattedLines.value.length > 3;
 });
 
+const formattedLines = computed(() => {
+  const name = label.value;
+  if (!name) return [''];
+  
+  // Split by dots to create multiline display
+  const parts = name.split('.');
+  if (parts.length === 1) {
+    return [name]; // No dots, return as single line
+  }
+  
+  const lines: string[] = [];
+  
+  // First line: dataset name (first part)
+  lines.push(parts[0]);
+  
+  // Middle lines: subdataset parts (if any)
+  if (parts.length > 2) {
+    const middleParts = parts.slice(1, -1);
+    lines.push(middleParts.join('.'));
+  }
+  
+  // Last line: asset name (last part)
+  lines.push(parts[parts.length - 1]);
+  
+  return lines;
+});
 
 const handleClickOutside = (event) => {
   if (showPopup.value) closePopup();
@@ -223,6 +249,11 @@ onUnmounted(() => {
   text-overflow: ellipsis;
   line-height: 1.3;
   transition: font-size 0.2s ease;
+}
+
+.text-line {
+  line-height: 1.2;
+  word-break: break-word;
 }
 
 .node-content {

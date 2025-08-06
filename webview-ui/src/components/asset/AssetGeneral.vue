@@ -46,7 +46,19 @@
       </div>
 
       <!-- Action Buttons Row -->
-      <div class="flex flex-col xs:flex-row gap-2 justify-end items-start xs:items-end">
+      <div class="flex flex-col xs:flex-row gap-2 justify-between items-start xs:items-end">
+        <!-- Create New Project Button (Left Side) -->
+        <div class="flex-shrink-0">
+          <vscode-button
+            appearance="secondary"
+            @click="handleCreateNewProject"
+            class="flex-shrink-0"
+          >
+            <div class="flex items-center space-x-1 whitespace-nowrap">
+              Create new project
+            </div>
+          </vscode-button>
+        </div>
 
         <div class="flex flex-col 2xs:flex-row flex-wrap gap-2 justify-start xs:justify-end items-stretch 2xs:items-center w-full xs:w-auto">
           <!-- Validate Button Group -->
@@ -697,6 +709,12 @@ function handleBruinValidateCurrentPipeline() {
 function handleBruinValidateAllPipelines() {
   vscode.postMessage({
     command: "bruin.validateAll",
+  });
+}
+
+function handleCreateNewProject() {
+  vscode.postMessage({
+    command: "bruin.createNewProject",
   });
 }
 

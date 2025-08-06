@@ -841,6 +841,23 @@ export class BruinPanel {
               });
             }
             break;
+          case "bruin.createNewProject":
+            // Get workspace directory to run bruin init
+            let initWorkspaceDir: string | undefined;
+            const initWorkspaceFolders = vscode.workspace.workspaceFolders;
+            
+            if (initWorkspaceFolders && initWorkspaceFolders.length > 0) {
+              initWorkspaceDir = initWorkspaceFolders[0].uri.fsPath;
+            }
+            
+            try {
+              const { runBruinInit } = await import("../bruin/bruinInit");
+              await runBruinInit(initWorkspaceDir);
+            } catch (error) {
+              console.error("Error running bruin init:", error);
+              vscode.window.showErrorMessage("Failed to run bruin init. Please ensure Bruin CLI is installed.");
+            }
+            break;
         }
       },
       undefined,

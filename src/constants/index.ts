@@ -17,6 +17,8 @@ const BRUIN_VALIDATE_SQL_COMMAND = "validate";
 const BRUIN_VALIDATE_SQL_ID = "bruin.validate";
 const BRUIN_RUN_SQL_COMMAND = "run";
 const BRUIN_RUN_SQL_ID = "bruin.run";
+const BRUIN_INIT_COMMAND = "init";
+const BRUIN_INIT_ID = "bruin.init";
 
 
 export {
@@ -30,6 +32,8 @@ export {
   BRUIN_VALIDATE_SQL_ID,
   BRUIN_RUN_SQL_COMMAND,
   BRUIN_RUN_SQL_ID,
+  BRUIN_INIT_COMMAND,
+  BRUIN_INIT_ID,
   BRUIN_WHERE_COMMAND,
   
 };
